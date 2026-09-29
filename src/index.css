@@ -1,0 +1,74 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background: #111;
+  color: #fff;
+}
+
+button {
+  font: inherit;
+}
+
+main {
+  min-height: 100vh;
+  padding: 40px 24px;
+}
+
+h1 {
+  margin: 0 0 8px;
+  font-size: 42px;
+  letter-spacing: -1px;
+}
+
+main > p {
+  margin: 0 0 40px;
+  color: #aaa;
+  font-size: 18px;
+}
+
+/* Game cards */
+
+article {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+
+  width: 280px;
+  min-height: 160px;
+
+  margin-right: 20px;
+  padding: 24px;
+
+  background: #222;
+  border: 1px solid #444;
+  border-radius: 12px;
+
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease;
+}
+
+article:hover {
+  transform: translateY(-4px);
+  border-color: #fff;
+}
+
+article h2 {
+  margin: 0 0 8px;
+  font-size: 24px;
+}
+
+article p {
+  margin: 0;
+  color: #999;
+}
