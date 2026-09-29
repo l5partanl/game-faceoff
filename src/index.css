@@ -36,26 +36,21 @@ main > p {
   font-size: 18px;
 }
 
-/* Game cards */
-
 article {
   display: inline-flex;
   flex-direction: column;
   justify-content: center;
-
   width: 280px;
   min-height: 160px;
-
   margin-right: 20px;
   padding: 24px;
-
   background: #222;
   border: 1px solid #444;
   border-radius: 12px;
-
   transition:
     transform 0.2s ease,
-    border-color 0.2s ease;
+    border-color 0.2s ease,
+    opacity 0.3s ease;
 }
 
 article:hover {
@@ -71,4 +66,303 @@ article h2 {
 article p {
   margin: 0;
   color: #999;
+}
+
+.duel-stage {
+  position: relative;
+  min-height: 430px;
+}
+
+.duel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+  margin-top: 60px;
+}
+
+.duel-vs {
+  font-size: 32px;
+  font-weight: bold;
+  color: #666;
+  flex-shrink: 0;
+}
+
+.duel-card-wrapper {
+  transition:
+    transform 0.35s ease,
+    opacity 0.35s ease,
+    filter 0.35s ease;
+}
+
+.game-card {
+  cursor: pointer;
+}
+
+.game-card:hover {
+  transform: translateY(-8px) scale(1.02);
+}
+
+/* -------------------------
+   INTRO
+------------------------- */
+
+.duel-intro {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  animation: intro-in 0.5s ease forwards;
+}
+
+.duel-intro p {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: bold;
+  letter-spacing: 3px;
+}
+
+.duel-intro span {
+  color: #777;
+  font-size: 13px;
+}
+
+@keyframes intro-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* -------------------------
+   PRESENTATION
+------------------------- */
+
+.duel-presenting .duel-card-wrapper {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.duel-presenting .duel-vs {
+  opacity: 0;
+}
+
+/* -------------------------
+   HIGHLIGHT
+------------------------- */
+
+.duel-card-wrapper.is-selected {
+  transform: scale(1.08);
+  z-index: 2;
+}
+
+.duel-card-wrapper.is-selected article {
+  border-color: #fff;
+  box-shadow: 0 0 0 2px #fff;
+}
+
+.duel-card-wrapper.is-dimmed {
+  opacity: 0.35;
+  filter: grayscale(0.8);
+  transform: scale(0.94);
+}
+
+.duel-hint {
+  margin: 36px 0 0;
+  text-align: center;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.duel-hint span {
+  display: block;
+  margin-top: 6px;
+  color: #777;
+  font-size: 13px;
+  font-weight: normal;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* -------------------------
+   AFTERMATH
+------------------------- */
+
+.aftermath-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.88);
+  animation: overlay-in 0.3s ease forwards;
+}
+
+.aftermath {
+  width: min(600px, 100%);
+  padding: 48px;
+  text-align: center;
+  background: #181818;
+  border: 1px solid #444;
+  border-radius: 16px;
+  animation: aftermath-in 0.4s ease forwards;
+}
+
+.aftermath-label {
+  margin: 0 0 16px;
+  color: #888;
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 2px;
+}
+
+.aftermath h2 {
+  margin: 0 0 12px;
+  font-size: 42px;
+}
+
+.aftermath-main {
+  margin: 0 0 36px;
+  color: #bbb;
+  font-size: 18px;
+}
+
+.insights {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 36px;
+}
+
+.insight {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 20px 12px;
+  background: #222;
+  border: 1px solid #333;
+  border-radius: 8px;
+}
+
+.insight strong {
+  font-size: 28px;
+}
+
+.insight span {
+  color: #888;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.aftermath-dismiss {
+  width: 100%;
+  padding: 16px 20px;
+  color: #111;
+  background: #fff;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease;
+}
+
+.aftermath-dismiss:hover {
+  transform: translateY(-2px);
+  background: #ddd;
+}
+
+/* -------------------------
+   ANIMATIONS
+------------------------- */
+
+@keyframes overlay-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes aftermath-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* -------------------------
+   MOBILE
+------------------------- */
+
+@media (max-width: 700px) {
+  main {
+    padding: 24px 16px;
+  }
+
+  h1 {
+    font-size: 32px;
+  }
+
+  .duel {
+    gap: 12px;
+  }
+
+  .duel-vs {
+    font-size: 20px;
+  }
+
+  article {
+    width: 150px;
+    min-height: 220px;
+    margin-right: 0;
+    padding: 16px;
+  }
+
+  article h2 {
+    font-size: 18px;
+  }
+
+  .duel-card-wrapper.is-selected {
+    transform: scale(1.08);
+  }
+
+  .aftermath {
+    padding: 32px 20px;
+  }
+
+  .aftermath h2 {
+    font-size: 30px;
+  }
+
+  .insights {
+    gap: 8px;
+  }
+
+  .insight {
+    padding: 16px 8px;
+  }
+
+  .insight strong {
+    font-size: 22px;
+  }
 }
