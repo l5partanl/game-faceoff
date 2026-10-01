@@ -5,7 +5,7 @@ const games: Game[] = [
   {
     id: 1,
     name: "Dark Souls III",
-    cover: "",
+    cover: "/images/dark-souls-3.jpg",
     year: 2016,
     genres: ["RPG", "Action"],
     platforms: ["PC", "PlayStation 4", "Xbox One"],
@@ -14,7 +14,7 @@ const games: Game[] = [
   {
     id: 2,
     name: "The Witcher 3",
-    cover: "",
+    cover: "/images/witcher-3.jpg",
     year: 2015,
     genres: ["RPG"],
     platforms: ["PC", "PlayStation 4", "Xbox One"],
@@ -23,7 +23,7 @@ const games: Game[] = [
   {
     id: 3,
     name: "Bloodborne",
-    cover: "",
+    cover: "/images/bloodborne.jpg",
     year: 2015,
     genres: ["RPG", "Action"],
     platforms: ["PlayStation 4"],
@@ -32,7 +32,7 @@ const games: Game[] = [
   {
     id: 4,
     name: "Hades",
-    cover: "",
+    cover: "/images/hades.jpg",
     year: 2020,
     genres: ["Action", "RPG"],
     platforms: ["PC", "Nintendo Switch"],
@@ -41,7 +41,7 @@ const games: Game[] = [
   {
     id: 5,
     name: "Red Dead Redemption 2",
-    cover: "",
+    cover: "/images/red-dead-redemption-2.jpg",
     year: 2018,
     genres: ["Action", "Adventure"],
     platforms: ["PC", "PlayStation 4", "Xbox One"],
@@ -50,7 +50,7 @@ const games: Game[] = [
   {
     id: 6,
     name: "Hollow Knight",
-    cover: "",
+    cover: "/images/hollow-knight.jpg",
     year: 2017,
     genres: ["Action", "Adventure"],
     platforms: ["PC", "Nintendo Switch"],
@@ -59,15 +59,7 @@ const games: Game[] = [
 ];
 
 function App() {
-  return (
-    <main>
-      <h1>GAME FACE-OFF</h1>
-
-      <p>Which game is better?</p>
-
-      <Duel games={games} />
-    </main>
-  );
+  return <Duel games={games} />;
 }
 
 export default App;
