@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
+import ThreeText from "./ThreeText";
+import ImpactSlash from "./ImpactSlash";
 import type { Game } from "../types/game";
 
-type DuelPhase = "presenting" | "highlighting" | "aftermath";
+type DuelPhase = "presenting" | "highlighting" | "impact" | "aftermath";
 
 interface DuelProps {
   games: Game[];
@@ -80,6 +82,18 @@ function Duel({ games }: DuelProps) {
     return () => clearTimeout(timer);
   }, [phase, duel]);
 
+  useEffect(() => {
+  if (phase !== "impact") {
+    return;
+  }
+
+  const timer = setTimeout(() => {
+    setPhase("aftermath");
+  }, 950);
+
+  return () => clearTimeout(timer);
+}, [phase]);
+
   const handleGameSelect = (game: Game) => {
     if (phase === "presenting") {
       return;
@@ -87,7 +101,7 @@ function Duel({ games }: DuelProps) {
 
     if (phase === "highlighting") {
       if (selectedGame?.id === game.id) {
-        setPhase("aftermath");
+        setPhase("impact");
         return;
       }
 
@@ -214,9 +228,11 @@ function Duel({ games }: DuelProps) {
         <div className="duel-cut-glow" />
 
         <div className="duel-vs">
-          <span>VS</span>
+          <ThreeText>VS</ThreeText>
         </div>
       </div>
+
+      {phase === "impact" && <ImpactSlash />}
 
       {phase === "highlighting" && (
         <div className="duel-instruction">
