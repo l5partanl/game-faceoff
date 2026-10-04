@@ -26,39 +26,65 @@ function ThreeText({ children }: ThreeTextProps) {
     const renderer = new THREE.WebGLRenderer({
       alpha: true,
       antialias: true,
+      powerPreference: "high-performance",
     });
 
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
 
     renderer.setClearColor(0x000000, 0);
 
     container.appendChild(renderer.domElement);
 
-    // Lights
+    // --------------------------------------------------
+    // TOON GRADIENT
+    // --------------------------------------------------
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
+    const gradientMap = new THREE.DataTexture(
+      new Uint8Array([
+        // Deep shadow
+        4, 4, 4, 255,
 
+        // Dark neutral
+        30, 30, 30, 255,
+
+        // Strong yellow
+        255, 217, 0, 255,
+
+        // Highlight
+        255, 255, 255, 255,
+      ]),
+      4,
+      1,
+      THREE.RGBAFormat,
+    );
+
+    gradientMap.minFilter = THREE.NearestFilter;
+    gradientMap.magFilter = THREE.NearestFilter;
+    gradientMap.generateMipmaps = false;
+    gradientMap.needsUpdate = true;
+
+    // --------------------------------------------------
+    // LIGHTS
+    // --------------------------------------------------
+
+    const ambientLight = new THREE.AmbientLight(0x111111, 0.2);
     scene.add(ambientLight);
 
-    const keyLight = new THREE.DirectionalLight(0xffffff, 3.5);
+    const yellowLight = new THREE.DirectionalLight(0xffd900, 5);
+    yellowLight.position.set(4, 1, 5);
+    scene.add(yellowLight);
 
-    keyLight.position.set(-2, 2, 5);
+    const blueLight = new THREE.DirectionalLight(0x168cff, 4);
+    blueLight.position.set(-4, -1, 3);
+    scene.add(blueLight);
 
-    scene.add(keyLight);
+    const frontLight = new THREE.DirectionalLight(0xffffff, 0.2);
+    frontLight.position.set(0, 0, 6);
+    scene.add(frontLight);
 
-    const sideLight = new THREE.DirectionalLight(0xffd900, 5);
-
-    sideLight.position.set(4, 0, 2);
-
-    scene.add(sideLight);
-
-    const rimLight = new THREE.DirectionalLight(0x168cff, 2.5);
-
-    rimLight.position.set(3, -2, -3);
-
-    scene.add(rimLight);
-
-    // Text group
+    // --------------------------------------------------
+    // TEXT GROUP
+    // --------------------------------------------------
 
     const textGroup = new THREE.Group();
 
@@ -67,7 +93,24 @@ function ThreeText({ children }: ThreeTextProps) {
     let animationFrame = 0;
     let disposed = false;
 
-    // Font
+    // --------------------------------------------------
+    // MOUSE TRACKING
+    // --------------------------------------------------
+
+    const mouseTarget = new THREE.Vector2(0, 0);
+    const mouseCurrent = new THREE.Vector2(0, 0);
+
+    const handleMouseMove = (event: MouseEvent) => {
+      mouseTarget.x = (event.clientX / window.innerWidth) * 2 - 1;
+
+      mouseTarget.y = (event.clientY / window.innerHeight) * 2 - 1;
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+
+    // --------------------------------------------------
+    // FONT
+    // --------------------------------------------------
 
     const fontLoader = new FontLoader();
 
@@ -81,12 +124,13 @@ function ThreeText({ children }: ThreeTextProps) {
         const geometry = new TextGeometry(children, {
           font,
           size: 1.42,
-          depth: 0.7,
-          curveSegments: 8,
+          depth: 0.58,
+          curveSegments: 5,
+
           bevelEnabled: true,
-          bevelThickness: 0.06,
-          bevelSize: 0.035,
-          bevelSegments: 3,
+          bevelThickness: 0.045,
+          bevelSize: 0.025,
+          bevelSegments: 1,
         });
 
         geometry.computeBoundingBox();
@@ -95,15 +139,36 @@ function ThreeText({ children }: ThreeTextProps) {
 
         if (bounds) {
           const width = bounds.max.x - bounds.min.x;
+
           const height = bounds.max.y - bounds.min.y;
 
           geometry.translate(-width / 2, -height / 2, 0);
         }
 
-        const material = new THREE.MeshStandardMaterial({
+        // --------------------------------------------------
+        // BLACK OUTLINE
+        // --------------------------------------------------
+
+        const outlineMaterial = new THREE.MeshBasicMaterial({
+          color: 0x050505,
+          side: THREE.BackSide,
+        });
+
+        const outline = new THREE.Mesh(geometry, outlineMaterial);
+
+        outline.scale.set(1.045, 1.045, 1.045);
+
+        outline.position.z = -0.035;
+
+        textGroup.add(outline);
+
+        // --------------------------------------------------
+        // TOON MATERIAL
+        // --------------------------------------------------
+
+        const material = new THREE.MeshToonMaterial({
           color: 0xffffff,
-          roughness: 0.38,
-          metalness: 0.65,
+          gradientMap,
         });
 
         const text = new THREE.Mesh(geometry, material);
@@ -115,7 +180,9 @@ function ThreeText({ children }: ThreeTextProps) {
       },
     );
 
-    // Resize
+    // --------------------------------------------------
+    // RESIZE
+    // --------------------------------------------------
 
     const resize = () => {
       const width = container.clientWidth;
@@ -126,6 +193,7 @@ function ThreeText({ children }: ThreeTextProps) {
       }
 
       camera.aspect = width / height;
+
       camera.updateProjectionMatrix();
 
       renderer.setSize(width, height, false);
@@ -137,7 +205,9 @@ function ThreeText({ children }: ThreeTextProps) {
 
     resizeObserver.observe(container);
 
-    // Animation
+    // --------------------------------------------------
+    // ANIMATION
+    // --------------------------------------------------
 
     const clock = new THREE.Clock();
 
@@ -150,25 +220,49 @@ function ThreeText({ children }: ThreeTextProps) {
 
       const elapsed = clock.getElapsedTime();
 
+      mouseCurrent.lerp(mouseTarget, 0.055);
+
+      // Floating.
+
       textGroup.position.y = Math.sin(elapsed * 0.9) * 0.08;
 
-      textGroup.rotation.y = Math.sin(elapsed * 0.4) * 0.12;
+      // Existing rotation.
 
-      textGroup.rotation.z = Math.sin(elapsed * 0.6) * 0.025;
+      const floatRotationY = Math.sin(elapsed * 0.4) * 0.12;
+
+      const floatRotationZ = Math.sin(elapsed * 0.6) * 0.025;
+
+      // Mouse influence.
+
+      const mouseRotationY = mouseCurrent.x * 0.22;
+
+      const mouseRotationX = mouseCurrent.y * 0.12;
+
+      textGroup.rotation.x = mouseRotationX;
+
+      textGroup.rotation.y = floatRotationY + mouseRotationY;
+
+      textGroup.rotation.z = floatRotationZ;
 
       renderer.render(scene, camera);
     };
 
     animate();
 
-    // Cleanup
+    // --------------------------------------------------
+    // CLEANUP
+    // --------------------------------------------------
 
     return () => {
       disposed = true;
 
       cancelAnimationFrame(animationFrame);
 
+      window.removeEventListener("mousemove", handleMouseMove);
+
       resizeObserver.disconnect();
+
+      gradientMap.dispose();
 
       scene.traverse((object) => {
         const mesh = object as THREE.Mesh;
