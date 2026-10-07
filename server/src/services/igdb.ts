@@ -4,10 +4,47 @@ interface IGDBTokenResponse {
   token_type: string;
 }
 
-interface IGDBGame {
+export interface IGDBImage {
+  id: number;
+  image_id: string;
+  url: string;
+  width?: number;
+  height?: number;
+}
+
+export interface IGDBNamedEntity {
   id: number;
   name: string;
+  slug?: string;
+}
+
+export interface IGDBGame {
+  id: number;
+  name: string;
+  slug?: string;
   first_release_date?: number;
+
+  genres?: IGDBNamedEntity[];
+  themes?: IGDBNamedEntity[];
+  keywords?: IGDBNamedEntity[];
+  game_modes?: IGDBNamedEntity[];
+  player_perspectives?: IGDBNamedEntity[];
+  platforms?: IGDBNamedEntity[];
+  game_engines?: IGDBNamedEntity[];
+
+  franchises?: IGDBNamedEntity[];
+  collections?: IGDBNamedEntity[];
+
+  involved_companies?: number[];
+
+  rating?: number;
+  aggregated_rating?: number;
+  aggregated_rating_count?: number;
+
+  cover?: IGDBImage;
+  artworks?: IGDBImage[];
+  screenshots?: IGDBImage[];
+  videos?: number[];
 }
 
 async function getAccessToken(): Promise<string> {
@@ -28,11 +65,15 @@ async function getAccessToken(): Promise<string> {
     `https://id.twitch.tv/oauth2/token?${params.toString()}`,
     {
       method: "POST",
-    }
+    },
   );
 
   if (!response.ok) {
-    throw new Error(`IGDB authentication failed: ${response.status}`);
+    const errorText = await response.text();
+
+    throw new Error(
+      `IGDB authentication failed: ${response.status} ${errorText}`,
+    );
   }
 
   const data = (await response.json()) as IGDBTokenResponse;
@@ -40,7 +81,7 @@ async function getAccessToken(): Promise<string> {
   return data.access_token;
 }
 
-export async function searchGames(searchTerm: string): Promise<IGDBGame[]> {
+async function queryIGDB<T>(endpoint: string, body: string): Promise<T[]> {
   const clientId = process.env.IGDB_CLIENT_ID;
 
   if (!clientId) {
@@ -49,27 +90,59 @@ export async function searchGames(searchTerm: string): Promise<IGDBGame[]> {
 
   const accessToken = await getAccessToken();
 
-  const response = await fetch("https://api.igdb.com/v4/games", {
+  const response = await fetch(`https://api.igdb.com/v4/${endpoint}`, {
     method: "POST",
     headers: {
       "Client-ID": clientId,
       Authorization: `Bearer ${accessToken}`,
       Accept: "application/json",
     },
-    body: `
-      search "${searchTerm}";
-      fields id, name, first_release_date;
-      limit 5;
-    `,
+    body,
   });
 
   if (!response.ok) {
     const errorText = await response.text();
 
-    throw new Error(
-      `IGDB games request failed: ${response.status} ${errorText}`
-    );
+    throw new Error(`IGDB request failed: ${response.status} ${errorText}`);
   }
 
-  return (await response.json()) as IGDBGame[];
+  return (await response.json()) as T[];
+}
+
+export async function searchGames(searchTerm: string): Promise<IGDBGame[]> {
+  return queryIGDB<IGDBGame>(
+    "games",
+    `
+      search "${searchTerm}";
+      fields
+        id,
+        name,
+        slug,
+        first_release_date,
+
+        genres.*,
+        themes.*,
+        keywords.*,
+        game_modes.*,
+        player_perspectives.*,
+        platforms.*,
+        game_engines.*,
+
+        franchises.*,
+        collections.*,
+
+        involved_companies,
+
+        rating,
+        aggregated_rating,
+        aggregated_rating_count,
+
+        cover.*,
+        artworks.*,
+        screenshots.*,
+        videos;
+
+      limit 5;
+    `,
+  );
 }

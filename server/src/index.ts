@@ -1,8 +1,10 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+
 import { connectDatabase } from "./config/database.js";
 import { searchGames } from "./services/igdb.js";
+import { normalizeIGDBGame } from "./services/gameService.js";
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -19,11 +21,13 @@ app.get("/api/health", (_req, res) => {
 
 app.get("/api/igdb/test", async (_req, res) => {
   try {
-    const games = await searchGames("Dark Souls");
+    const games = await searchGames("Castlevania Symphony of the Night");
+
+    const normalizedGames = games.map(normalizeIGDBGame);
 
     res.json({
       status: "ok",
-      results: games,
+      results: normalizedGames,
     });
   } catch (error) {
     console.error("IGDB test failed:", error);
