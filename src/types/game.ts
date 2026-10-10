@@ -1,9 +1,11 @@
 export interface Game {
   id: number;
   name: string;
+  image: string;
   cover: string;
-  year: number;
+  year: number | null;
   genres: string[];
   platforms: string[];
-  metacritic: number | null;
+  communityVotes: number;
+  communityRating: number;
 }

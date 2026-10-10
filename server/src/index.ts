@@ -81,7 +81,7 @@ app.post("/api/games/import", async (req, res) => {
           "Only games with a confirmed release date in the past can be imported",
       });
     }
-    
+
     const normalizedGame = normalizeIGDBGame(igdbGame);
 
     const result = await saveGameIfNotExists(normalizedGame);
@@ -556,10 +556,9 @@ app.post("/api/duels/vote", async (req, res) => {
       | undefined;
 
     await session.withTransaction(async () => {
-      const [gameA, gameB] = await Promise.all([
-        games.findOne({ igdbId: gameAId }, { session }),
-        games.findOne({ igdbId: gameBId }, { session }),
-      ]);
+      const gameA = await games.findOne({ igdbId: gameAId }, { session });
+
+      const gameB = await games.findOne({ igdbId: gameBId }, { session });
 
       if (!gameA || !gameB) {
         throw new Error("GAME_NOT_FOUND");
@@ -581,37 +580,35 @@ app.post("/api/duels/vote", async (req, res) => {
 
       const newRatingB = Math.round(ratingB + kFactor * (actualB - expectedB));
 
-      const [updateA, updateB] = await Promise.all([
-        games.updateOne(
-          { igdbId: gameAId },
-          {
-            $inc: {
-              "community.votes": 1,
-              "community.wins": actualA,
-              "community.losses": 1 - actualA,
-            },
-            $set: {
-              "community.rating": newRatingA,
-            },
+      const updateA = await games.updateOne(
+        { igdbId: gameAId },
+        {
+          $inc: {
+            "community.votes": 1,
+            "community.wins": actualA,
+            "community.losses": 1 - actualA,
           },
-          { session },
-        ),
+          $set: {
+            "community.rating": newRatingA,
+          },
+        },
+        { session },
+      );
 
-        games.updateOne(
-          { igdbId: gameBId },
-          {
-            $inc: {
-              "community.votes": 1,
-              "community.wins": actualB,
-              "community.losses": 1 - actualB,
-            },
-            $set: {
-              "community.rating": newRatingB,
-            },
+      const updateB = await games.updateOne(
+        { igdbId: gameBId },
+        {
+          $inc: {
+            "community.votes": 1,
+            "community.wins": actualB,
+            "community.losses": 1 - actualB,
           },
-          { session },
-        ),
-      ]);
+          $set: {
+            "community.rating": newRatingB,
+          },
+        },
+        { session },
+      );
 
       if (updateA.matchedCount !== 1 || updateB.matchedCount !== 1) {
         throw new Error("GAME_NOT_FOUND");

@@ -1,65 +1,74 @@
+import { useCallback, useEffect, useState } from "react";
 import Duel from "./components/Duel";
-import type { Game } from "./types/game";
+import { fetchNextDuel } from "./services/api";
+import type { DuelData, DuelMode } from "./services/api";
 
-const games: Game[] = [
-  {
-    id: 1,
-    name: "Dark Souls III",
-    cover: "/images/dark-souls-3.jpg",
-    year: 2016,
-    genres: ["RPG", "Action"],
-    platforms: ["PC", "PlayStation 4", "Xbox One"],
-    metacritic: 89,
-  },
-  {
-    id: 2,
-    name: "The Witcher 3",
-    cover: "/images/witcher-3.jpg",
-    year: 2015,
-    genres: ["RPG"],
-    platforms: ["PC", "PlayStation 4", "Xbox One"],
-    metacritic: 92,
-  },
-  {
-    id: 3,
-    name: "Bloodborne",
-    cover: "/images/bloodborne.jpg",
-    year: 2015,
-    genres: ["RPG", "Action"],
-    platforms: ["PlayStation 4"],
-    metacritic: 92,
-  },
-  {
-    id: 4,
-    name: "Hades",
-    cover: "/images/hades.jpg",
-    year: 2020,
-    genres: ["Action", "RPG"],
-    platforms: ["PC", "Nintendo Switch"],
-    metacritic: 93,
-  },
-  {
-    id: 5,
-    name: "Red Dead Redemption 2",
-    cover: "/images/red-dead-redemption-2.jpg",
-    year: 2018,
-    genres: ["Action", "Adventure"],
-    platforms: ["PC", "PlayStation 4", "Xbox One"],
-    metacritic: 97,
-  },
-  {
-    id: 6,
-    name: "Hollow Knight",
-    cover: "/images/hollow-knight.jpg",
-    year: 2017,
-    genres: ["Action", "Adventure"],
-    platforms: ["PC", "Nintendo Switch"],
-    metacritic: 90,
-  },
-];
+const modes: DuelMode[] = ["SIMILARITY", "CONTRAST", "DISCOVERY"];
 
 function App() {
-  return <Duel games={games} />;
+  const [duel, setDuel] = useState<DuelData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadDuel = useCallback(async (mode?: DuelMode) => {
+    setLoading(true);
+    setError(null);
+
+    const selectedMode =
+      mode ?? modes[Math.floor(Math.random() * modes.length)];
+
+    try {
+      const nextDuel = await fetchNextDuel(selectedMode);
+      setDuel(nextDuel);
+    } catch (err) {
+      console.error("Failed to load duel:", err);
+
+      setError(
+        err instanceof Error ? err.message : "Could not load the next duel.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void loadDuel("SIMILARITY");
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [loadDuel]);
+
+  if (!duel && loading) {
+    return (
+      <main className="duel-stage" role="status">
+        <p>Loading contenders...</p>
+      </main>
+    );
+  }
+
+  if (!duel) {
+    return (
+      <main className="duel-stage" role="alert">
+        <p>{error ?? "Could not load a duel."}</p>
+        <button onClick={() => void loadDuel("SIMILARITY")}>TRY AGAIN</button>
+      </main>
+    );
+  }
+
+  return (
+    <>
+      {error && <div role="alert">Could not load the next duel: {error}</div>}
+
+      <Duel
+        key={`${duel.games[0].id}-${duel.games[1].id}`}
+        duel={duel.games}
+        mode={duel.mode}
+        reason={duel.reason}
+        onNextDuel={() => void loadDuel()}
+      />
+    </>
+  );
 }
 
 export default App;

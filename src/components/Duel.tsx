@@ -2,11 +2,16 @@ import { useEffect, useState } from "react";
 import ThreeText from "./ThreeText";
 import ImpactSlash from "./ImpactSlash";
 import type { Game } from "../types/game";
+import type { DuelMode } from "../services/api";
+import { recordVote, type VoteGameResult } from "../services/api";
 
 type DuelPhase = "presenting" | "highlighting" | "impact" | "aftermath";
 
 interface DuelProps {
-  games: Game[];
+  duel: [Game, Game];
+  mode: DuelMode;
+  reason: string;
+  onNextDuel: () => void;
 }
 
 interface DuelContext {
@@ -15,65 +20,41 @@ interface DuelContext {
   accent: "yellow" | "red" | "blue";
 }
 
-const duelContexts: DuelContext[] = [
-  {
-    title: "2017 BEST OF",
-    subtitle: "Two contenders. One choice.",
-    accent: "yellow",
-  },
-  {
-    title: "RPGs FOR THE AGES",
-    subtitle: "Same genre. Different legends.",
-    accent: "red",
-  },
-  {
-    title: "CLASSIC VS MODERN",
-    subtitle: "Different eras. Same question.",
-    accent: "blue",
-  },
-  {
-    title: "2000s VS 2010s",
-    subtitle: "Two generations collide.",
-    accent: "yellow",
-  },
-  {
-    title: "THE UNDERDOG",
-    subtitle: "Can the lower-ranked game pull the upset?",
-    accent: "red",
-  },
-];
-
-function getRandomDuel(games: Game[]): [Game, Game] {
-  const firstIndex = Math.floor(Math.random() * games.length);
-
-  let secondIndex = Math.floor(Math.random() * games.length);
-
-  while (secondIndex === firstIndex) {
-    secondIndex = Math.floor(Math.random() * games.length);
+function getDuelContext(mode: DuelMode, reason: string): DuelContext {
+  switch (mode) {
+    case "SIMILARITY":
+      return {
+        title: "SAME DNA",
+        subtitle: reason,
+        accent: "yellow",
+      };
+    case "CONTRAST":
+      return {
+        title: "CLASH OF WORLDS",
+        subtitle: reason,
+        accent: "red",
+      };
+    case "DISCOVERY":
+      return {
+        title: "DISCOVERY MODE",
+        subtitle: reason,
+        accent: "blue",
+      };
   }
-
-  return [games[firstIndex], games[secondIndex]];
 }
 
-function getRandomContext(): DuelContext {
-  return duelContexts[Math.floor(Math.random() * duelContexts.length)];
-}
-
-function Duel({ games }: DuelProps) {
-  const [duel, setDuel] = useState<[Game, Game]>(() => getRandomDuel(games));
-
-  const [context, setContext] = useState<DuelContext>(() => getRandomContext());
-
+function Duel({ duel, mode, reason, onNextDuel }: DuelProps) {
   const [phase, setPhase] = useState<DuelPhase>("presenting");
-
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
+  const [voteResult, setVoteResult] = useState<VoteGameResult | null>(null);
+  const [isSavingVote, setIsSavingVote] = useState(false);
+  const [voteError, setVoteError] = useState<string | null>(null);
 
   const [gameA, gameB] = duel;
+  const context = getDuelContext(mode, reason);
 
   useEffect(() => {
-    if (phase !== "presenting") {
-      return;
-    }
+    if (phase !== "presenting") return;
 
     const timer = setTimeout(() => {
       setPhase("highlighting");
@@ -83,41 +64,69 @@ function Duel({ games }: DuelProps) {
   }, [phase, duel]);
 
   useEffect(() => {
-  if (phase !== "impact") {
-    return;
-  }
+    if (phase !== "impact") return;
 
-  const timer = setTimeout(() => {
-    setPhase("aftermath");
-  }, 950);
+    const timer = setTimeout(() => {
+      setPhase("aftermath");
+    }, 950);
 
-  return () => clearTimeout(timer);
-}, [phase]);
+    return () => clearTimeout(timer);
+  }, [phase]);
 
   const handleGameSelect = (game: Game) => {
-    if (phase === "presenting") {
+    if (phase !== "highlighting" || isSavingVote || voteResult) return;
+
+    if (selectedGame?.id === game.id) {
+      setVoteError(null);
+      setIsSavingVote(true);
+
+      void recordVote(gameA.id, gameB.id, game.id)
+        .then((response) => {
+          const result =
+            response.result.gameA.igdbId === game.id
+              ? response.result.gameA
+              : response.result.gameB;
+
+          setVoteResult(result);
+          setPhase("impact");
+        })
+        .catch((error: unknown) => {
+          console.error("Failed to record vote:", error);
+          setVoteError(
+            error instanceof Error
+              ? error.message
+              : "Could not save your vote. Please try again.",
+          );
+        })
+        .finally(() => {
+          setIsSavingVote(false);
+        });
+
       return;
     }
 
-    if (phase === "highlighting") {
-      if (selectedGame?.id === game.id) {
-        setPhase("impact");
-        return;
-      }
-
-      setSelectedGame(game);
-    }
-  };
-
-  const handleNextDuel = () => {
-    setDuel(getRandomDuel(games));
-    setContext(getRandomContext());
-    setSelectedGame(null);
-    setPhase("presenting");
+    setSelectedGame(game);
+    setVoteError(null);
   };
 
   const selectedIsA = selectedGame?.id === gameA.id;
   const selectedIsB = selectedGame?.id === gameB.id;
+
+  const selectedStats = selectedGame ? voteResult : null;
+
+  const renderGameImage = (game: Game) => (
+    <img
+      src={game.image || game.cover}
+      alt=""
+      onError={(event) => {
+        const img = event.currentTarget;
+
+        if (game.cover && img.src !== game.cover) {
+          img.src = game.cover;
+        }
+      }}
+    />
+  );
 
   return (
     <section
@@ -126,83 +135,52 @@ function Duel({ games }: DuelProps) {
       }`}
     >
       <div className="duel-background">
-        <button
-          className={`duel-side duel-side-a ${
-            selectedIsA ? "is-selected" : ""
-          } ${selectedIsB ? "is-dimmed" : ""}`}
-          onClick={() => handleGameSelect(gameA)}
-          aria-label={`Choose ${gameA.name}`}
-        >
-          <div className="duel-side-image">
-            <img src={gameA.cover} alt="" />
-          </div>
+        {[gameA, gameB].map((game, index) => {
+          const isA = index === 0;
+          const isSelected = selectedGame?.id === game.id;
+          const isDimmed = selectedGame !== null && !isSelected;
 
-          <div className="duel-side-overlay" />
-          <div className="duel-side-pattern" />
+          return (
+            <button
+              key={game.id}
+              className={`duel-side ${isA ? "duel-side-a" : "duel-side-b"} ${
+                isSelected ? "is-selected" : ""
+              } ${isDimmed ? "is-dimmed" : ""}`}
+              onClick={() => handleGameSelect(game)}
+              aria-label={`Choose ${game.name}`}
+              disabled={
+                phase !== "highlighting" || isSavingVote || !!voteResult
+              }
+            >
+              <div className="duel-side-image">{renderGameImage(game)}</div>
+              <div className="duel-side-overlay" />
+              <div className="duel-side-pattern" />
 
-          <div className="duel-side-content">
-            <div className="duel-side-top">
-              <span className="duel-side-number">01</span>
+              <div className="duel-side-content">
+                <div className="duel-side-top">
+                  <span className="duel-side-number">{isA ? "01" : "02"}</span>
+                  <span className="duel-side-category">CONTENDER</span>
+                </div>
 
-              <span className="duel-side-category">CONTENDER</span>
-            </div>
+                <div className="duel-side-bottom">
+                  <div className="duel-side-label">
+                    <span>{game.year ?? "—"}</span>
+                    <span>/</span>
+                    <span>{game.communityVotes} VOTES</span>
+                  </div>
 
-            <div className="duel-side-bottom">
-              <div className="duel-side-label">
-                <span>{gameA.year}</span>
-                <span>/</span>
-                <span>{gameA.metacritic ?? "—"} MC</span>
+                  <h2>{game.name}</h2>
+
+                  <div className="duel-side-details">
+                    {game.genres.slice(0, 2).map((genre) => (
+                      <span key={genre}>{genre}</span>
+                    ))}
+                  </div>
+                </div>
               </div>
-
-              <h2>{gameA.name}</h2>
-
-              <div className="duel-side-details">
-                {gameA.genres.slice(0, 2).map((genre) => (
-                  <span key={genre}>{genre}</span>
-                ))}
-              </div>
-            </div>
-          </div>
-        </button>
-
-        <button
-          className={`duel-side duel-side-b ${
-            selectedIsB ? "is-selected" : ""
-          } ${selectedIsA ? "is-dimmed" : ""}`}
-          onClick={() => handleGameSelect(gameB)}
-          aria-label={`Choose ${gameB.name}`}
-        >
-          <div className="duel-side-image">
-            <img src={gameB.cover} alt="" />
-          </div>
-
-          <div className="duel-side-overlay" />
-          <div className="duel-side-pattern" />
-
-          <div className="duel-side-content">
-            <div className="duel-side-top">
-              <span className="duel-side-number">02</span>
-
-              <span className="duel-side-category">CONTENDER</span>
-            </div>
-
-            <div className="duel-side-bottom">
-              <div className="duel-side-label">
-                <span>{gameB.year}</span>
-                <span>/</span>
-                <span>{gameB.metacritic ?? "—"} MC</span>
-              </div>
-
-              <h2>{gameB.name}</h2>
-
-              <div className="duel-side-details">
-                {gameB.genres.slice(0, 2).map((genre) => (
-                  <span key={genre}>{genre}</span>
-                ))}
-              </div>
-            </div>
-          </div>
-        </button>
+            </button>
+          );
+        })}
       </div>
 
       {phase === "presenting" && (
@@ -210,11 +188,8 @@ function Duel({ games }: DuelProps) {
           <div className="duel-presentation-tag">
             <span>GAME FACE-OFF</span>
           </div>
-
           <div className="duel-presentation-title">{context.title}</div>
-
           <div className="duel-presentation-subtitle">{context.subtitle}</div>
-
           <div className="duel-presentation-lines">
             <span />
             <span />
@@ -226,7 +201,6 @@ function Duel({ games }: DuelProps) {
       <div className="duel-cut" aria-hidden="true">
         <div className="duel-cut-line" />
         <div className="duel-cut-glow" />
-
         <div className="duel-vs">
           <ThreeText>VS</ThreeText>
         </div>
@@ -237,16 +211,26 @@ function Duel({ games }: DuelProps) {
       {phase === "highlighting" && (
         <div className="duel-instruction">
           <div className="duel-instruction-box">
-            {selectedGame ? (
+            {isSavingVote ? (
+              <>
+                <strong>SAVING YOUR VOTE...</strong>
+                <span>PLEASE WAIT</span>
+              </>
+            ) : selectedGame ? (
               <>
                 <strong>{selectedGame.name}</strong>
-                <span>PRESS AGAIN TO CHOOSE</span>
+                <span>PRESS AGAIN TO CONFIRM</span>
               </>
             ) : (
               <>
                 <strong>MAKE YOUR CHOICE</strong>
                 <span>CHOOSE YOUR CONTENDER</span>
               </>
+            )}
+            {voteError && (
+              <p role="alert">
+                {voteError} Click your chosen game again to retry.
+              </p>
             )}
           </div>
         </div>
@@ -257,44 +241,42 @@ function Duel({ games }: DuelProps) {
           <div className="aftermath-background" />
 
           <div className="aftermath">
-            <div className="aftermath-tag">VOTE REGISTERED</div>
+            <div className="aftermath-tag">PICK CONFIRMED</div>
 
             <div className="aftermath-topline">
               <span>GAME FACE-OFF</span>
-              <span>RESULT / 001</span>
+              <span>DUEL / {mode}</span>
             </div>
 
             <h2>{selectedGame.name}</h2>
-
             <div className="aftermath-slash" />
-
-            <p className="aftermath-main">
-              You picked the community&apos;s favorite.
-            </p>
+            <p className="aftermath-main">Your vote has been recorded.</p>
 
             <div className="insights">
               <div className="insight">
-                <strong>68%</strong>
-                <span>PLAYER AGREEMENT</span>
+                <strong>
+                  {selectedStats?.votes ?? selectedGame.communityVotes + 1}
+                </strong>
+                <span>COMMUNITY VOTES</span>
               </div>
 
               <div className="insight">
-                <strong>#3</strong>
-                <span>AMONG RPGs</span>
+                <strong>{selectedStats ? selectedStats.rating : "—"}</strong>
+                <span>COMMUNITY RATING</span>
               </div>
 
               <div className="insight">
-                <strong>#7</strong>
-                <span>{selectedGame.year} RELEASES</span>
+                <strong>{selectedGame.year ?? "—"}</strong>
+                <span>RELEASE YEAR</span>
               </div>
 
               <div className="insight">
-                <strong>{selectedGame.metacritic ?? "—"}</strong>
-                <span>METACRITIC</span>
+                <strong>{selectedGame.genres[0] ?? "—"}</strong>
+                <span>MAIN GENRE</span>
               </div>
             </div>
 
-            <button className="aftermath-dismiss" onClick={handleNextDuel}>
+            <button className="aftermath-dismiss" onClick={onNextDuel}>
               <span>CONTINUE</span>
               <strong>→</strong>
             </button>
