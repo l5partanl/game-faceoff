@@ -98,6 +98,7 @@ export function normalizeIGDBGame(game: IGDBGame): Game {
     external: {
       igdbId: game.id,
       rating: game.rating,
+      ratingCount: game.rating_count,
       aggregatedRating: game.aggregated_rating,
       aggregatedRatingCount: game.aggregated_rating_count,
     },

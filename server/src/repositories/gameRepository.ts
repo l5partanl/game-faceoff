@@ -52,3 +52,26 @@ export async function saveGameIfNotExists(
     inserted: result.upsertedCount > 0,
   };
 }
+
+
+export async function refreshGameMetadata(
+  game: Game
+): Promise<Game | null> {
+  const games = await getGameCollection();
+
+  await games.updateOne(
+    { igdbId: game.igdbId },
+    {
+      $set: {
+        name: game.name,
+        slug: game.slug,
+        time: game.time,
+        dna: game.dna,
+        media: game.media,
+        external: game.external,
+      },
+    }
+  );
+
+  return games.findOne({ igdbId: game.igdbId });
+}

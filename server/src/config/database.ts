@@ -6,7 +6,7 @@ if (!uri) {
   throw new Error("MONGODB_URI is not defined");
 }
 
-const client = new MongoClient(uri);
+export const client = new MongoClient(uri);
 
 let database: Db;
 

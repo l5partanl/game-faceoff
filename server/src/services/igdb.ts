@@ -169,9 +169,10 @@ export async function getGameByIGDBId(
         franchises.*,
         collections.*,
         involved_companies,
-        rating,
-        aggregated_rating,
-        aggregated_rating_count,
+rating,
+rating_count,
+aggregated_rating,
+aggregated_rating_count,
         cover.*,
         artworks.*,
         screenshots.*,
@@ -189,7 +190,9 @@ export type DiscoveryStrategy =
   | "RETRO_PRE_2000"
   | "RETRO_2000S"
   | "LOW_EXPOSURE"
-  | "LOW_EXPOSURE_RETRO";
+  | "LOW_EXPOSURE_RETRO"
+  | "INDIE_DISCOVERY"
+  | "INDIE_RETRO";
 
 const discoveryStrategies: Record<
   DiscoveryStrategy,
@@ -224,6 +227,16 @@ const discoveryStrategies: Record<
       "first_release_date < 1262304000 & rating_count > 0 & rating_count <= 50 & cover != null",
     sort: "rating desc",
   },
+
+  INDIE_DISCOVERY: {
+    where: "genres = (32) & cover != null",
+    sort: "rating_count asc",
+  },
+
+  INDIE_RETRO: {
+    where: "genres = (32) & first_release_date < 1262304000 & cover != null",
+    sort: "rating_count asc",
+  },
 };
 
 export async function discoverGames(
@@ -232,7 +245,6 @@ export async function discoverGames(
   offset = 0,
 ): Promise<IGDBGame[]> {
   const safeLimit = Math.min(Math.max(Math.floor(limit), 1), 50);
-
   const safeOffset = Math.max(Math.floor(offset), 0);
 
   const config = discoveryStrategies[strategy];
@@ -240,6 +252,10 @@ export async function discoverGames(
   if (!config) {
     throw new Error(`Unknown discovery strategy: ${strategy}`);
   }
+
+  // Exclude unreleased games up to date
+  const currentTimestamp = Math.floor(Date.now() / 1000);
+  const where = `${config.where} & first_release_date <= ${currentTimestamp}`;
 
   return queryIGDB<IGDBGame>(
     "games",
@@ -265,7 +281,7 @@ export async function discoverGames(
         aggregated_rating_count,
         cover.*,
         screenshots.*;
-      where ${config.where};
+      where ${where};
       sort ${config.sort};
       limit ${safeLimit};
       offset ${safeOffset};

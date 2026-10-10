@@ -30,6 +30,7 @@ export interface GameMedia {
 export interface GameExternal {
   igdbId: number;
   rating?: number;
+  ratingCount?: number;
   aggregatedRating?: number;
   aggregatedRatingCount?: number;
 }
