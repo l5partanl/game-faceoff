@@ -38,6 +38,7 @@ export interface IGDBGame {
   involved_companies?: number[];
 
   rating?: number;
+  rating_count?: number;
   aggregated_rating?: number;
   aggregated_rating_count?: number;
 
@@ -181,4 +182,93 @@ export async function getGameByIGDBId(
   );
 
   return games[0] ?? null;
+}
+
+export type DiscoveryStrategy =
+  | "CATALOG"
+  | "RETRO_PRE_2000"
+  | "RETRO_2000S"
+  | "LOW_EXPOSURE"
+  | "LOW_EXPOSURE_RETRO";
+
+const discoveryStrategies: Record<
+  DiscoveryStrategy,
+  {
+    where: string;
+    sort: string;
+  }
+> = {
+  CATALOG: {
+    where: "first_release_date != null & cover != null",
+    sort: "first_release_date desc",
+  },
+
+  RETRO_PRE_2000: {
+    where: "first_release_date < 946684800 & cover != null",
+    sort: "rating_count asc",
+  },
+
+  RETRO_2000S: {
+    where:
+      "first_release_date >= 946684800 & first_release_date < 1262304000 & cover != null",
+    sort: "rating_count asc",
+  },
+
+  LOW_EXPOSURE: {
+    where: "rating_count > 0 & rating_count <= 50 & cover != null",
+    sort: "rating desc",
+  },
+
+  LOW_EXPOSURE_RETRO: {
+    where:
+      "first_release_date < 1262304000 & rating_count > 0 & rating_count <= 50 & cover != null",
+    sort: "rating desc",
+  },
+};
+
+export async function discoverGames(
+  strategy: DiscoveryStrategy = "CATALOG",
+  limit = 20,
+  offset = 0,
+): Promise<IGDBGame[]> {
+  const safeLimit = Math.min(Math.max(Math.floor(limit), 1), 50);
+
+  const safeOffset = Math.max(Math.floor(offset), 0);
+
+  const config = discoveryStrategies[strategy];
+
+  if (!config) {
+    throw new Error(`Unknown discovery strategy: ${strategy}`);
+  }
+
+  return queryIGDB<IGDBGame>(
+    "games",
+    `
+      fields
+        id,
+        name,
+        slug,
+        first_release_date,
+        genres.*,
+        themes.*,
+        keywords.*,
+        game_modes.*,
+        player_perspectives.*,
+        platforms.*,
+        game_engines.*,
+        franchises.*,
+        collections.*,
+        involved_companies,
+        rating,
+        rating_count,
+        aggregated_rating,
+        aggregated_rating_count,
+        cover.*,
+        screenshots.*;
+      where ${config.where};
+      sort ${config.sort};
+      limit ${safeLimit};
+      offset ${safeOffset};
+    `,
+  );
 }
