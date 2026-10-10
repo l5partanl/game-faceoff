@@ -146,3 +146,39 @@ export async function searchGames(searchTerm: string): Promise<IGDBGame[]> {
     `,
   );
 }
+
+export async function getGameByIGDBId(
+  igdbId: number,
+): Promise<IGDBGame | null> {
+  const games = await queryIGDB<IGDBGame>(
+    "games",
+    `
+      fields
+        id,
+        name,
+        slug,
+        first_release_date,
+        genres.*,
+        themes.*,
+        keywords.*,
+        game_modes.*,
+        player_perspectives.*,
+        platforms.*,
+        game_engines.*,
+        franchises.*,
+        collections.*,
+        involved_companies,
+        rating,
+        aggregated_rating,
+        aggregated_rating_count,
+        cover.*,
+        artworks.*,
+        screenshots.*,
+        videos;
+      where id = ${igdbId};
+      limit 1;
+    `,
+  );
+
+  return games[0] ?? null;
+}
