@@ -14,6 +14,9 @@ import {
   searchGames,
   getGameByIGDBId,
 } from "./services/igdb.js";
+
+import { startCatalogSync } from "./services/catalogSync.js";
+
 import { generateDuel, type DuelMode } from "./services/duelGenerator.js";
 
 const app = express();
@@ -69,6 +72,16 @@ app.post("/api/games/import", async (req, res) => {
       });
     }
 
+    const now = Math.floor(Date.now() / 1000);
+
+    if (!igdbGame.first_release_date || igdbGame.first_release_date > now) {
+      return res.status(422).json({
+        status: "error",
+        message:
+          "Only games with a confirmed release date in the past can be imported",
+      });
+    }
+    
     const normalizedGame = normalizeIGDBGame(igdbGame);
 
     const result = await saveGameIfNotExists(normalizedGame);
@@ -92,8 +105,10 @@ app.post("/api/games/import", async (req, res) => {
 });
 
 app.post("/api/games/discover", async (req, res) => {
-  const limit = Number(req.body?.limit ?? 20);
+  const limit = Number(req.body?.limit ?? 50);
   const offset = Number(req.body?.offset ?? 0);
+  const maxPages = Number(req.body?.maxPages ?? 1);
+  const targetNew = Number(req.body?.targetNew ?? 50);
   const strategy = req.body?.strategy ?? "CATALOG";
 
   const allowedStrategies = [
@@ -112,53 +127,125 @@ app.post("/api/games/discover", async (req, res) => {
     limit > 50 ||
     !Number.isInteger(offset) ||
     offset < 0 ||
+    !Number.isInteger(maxPages) ||
+    maxPages < 1 ||
+    maxPages > 10 ||
+    !Number.isInteger(targetNew) ||
+    targetNew < 1 ||
+    targetNew > 500 ||
     typeof strategy !== "string" ||
     !allowedStrategies.includes(strategy)
   ) {
     return res.status(400).json({
       status: "error",
-      message: "Invalid discovery strategy, limit or offset",
+      message: "Invalid discovery parameters",
       allowedStrategies,
+      limits: {
+        pageSize: "1-50",
+        maxPages: "1-10",
+        targetNew: "1-500",
+      },
     });
   }
 
   try {
-    const igdbGames = await discoverGames(
-      strategy as import("./services/igdb.js").DiscoveryStrategy,
-      limit,
-      offset,
-    );
-
+    let currentOffset = offset;
     let inserted = 0;
     let existing = 0;
     let failed = 0;
+    let skippedUnreleased = 0;
+    let received = 0;
+    let pagesProcessed = 0;
 
-    for (const igdbGame of igdbGames) {
-      try {
-        const game = normalizeIGDBGame(igdbGame);
-        const result = await saveGameIfNotExists(game);
+    const pageResults: {
+      offset: number;
+      received: number;
+      inserted: number;
+      existing: number;
+      failed: number;
+    }[] = [];
 
-        if (result.inserted) {
-          inserted++;
-        } else {
-          existing++;
+    const currentTimestamp = Math.floor(Date.now() / 1000);
+
+    while (pagesProcessed < maxPages && inserted < targetNew) {
+      const igdbGames = await discoverGames(
+        strategy as import("./services/igdb.js").DiscoveryStrategy,
+        limit,
+        currentOffset,
+      );
+
+      if (igdbGames.length === 0) {
+        break;
+      }
+
+      const pageOffset = currentOffset;
+      let pageInserted = 0;
+      let pageExisting = 0;
+      let pageFailed = 0;
+
+      received += igdbGames.length;
+      pagesProcessed++;
+
+      for (const igdbGame of igdbGames) {
+        try {
+          // Solo guardamos juegos con fecha de lanzamiento
+          // conocida y que ya hayan salido.
+          if (
+            !igdbGame.first_release_date ||
+            igdbGame.first_release_date > currentTimestamp
+          ) {
+            skippedUnreleased++;
+            continue;
+          }
+
+          const game = normalizeIGDBGame(igdbGame);
+          const result = await saveGameIfNotExists(game);
+
+          if (result.inserted) {
+            inserted++;
+            pageInserted++;
+          } else {
+            existing++;
+            pageExisting++;
+          }
+        } catch (error) {
+          failed++;
+          pageFailed++;
+
+          console.error(`Failed to import IGDB game ${igdbGame.id}:`, error);
         }
-      } catch (error) {
-        failed++;
+      }
 
-        console.error(`Failed to import IGDB game ${igdbGame.id}:`, error);
+      pageResults.push({
+        offset: pageOffset,
+        received: igdbGames.length,
+        inserted: pageInserted,
+        existing: pageExisting,
+        failed: pageFailed,
+      });
+
+      currentOffset += igdbGames.length;
+
+      if (igdbGames.length < limit) {
+        break;
       }
     }
 
     return res.json({
       status: "ok",
       strategy,
-      requested: limit,
-      received: igdbGames.length,
+      requestedPerPage: limit,
+      targetNew,
       inserted,
       existing,
       failed,
-      nextOffset: offset + igdbGames.length,
+      skippedUnreleased,
+      pagesProcessed,
+      received,
+      startOffset: offset,
+      nextOffset: currentOffset,
+      targetReached: inserted >= targetNew,
+      pages: pageResults,
     });
   } catch (error) {
     console.error("Game discovery failed:", error);
@@ -637,6 +724,8 @@ async function startServer() {
   try {
     await connectDatabase();
     await initializeGameRepository();
+
+    startCatalogSync();
 
     app.listen(PORT, () => {
       console.log(`Game Faceoff API running on http://localhost:${PORT}`);
