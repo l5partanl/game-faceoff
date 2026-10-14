@@ -8,4 +8,5 @@ export interface Game {
   platforms: string[];
   communityVotes: number;
   communityRating: number;
+  summary: string;
 }

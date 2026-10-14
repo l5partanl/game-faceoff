@@ -46,6 +46,8 @@ export interface IGDBGame {
   artworks?: IGDBImage[];
   screenshots?: IGDBImage[];
   videos?: number[];
+
+  summary?: string;
 }
 
 async function getAccessToken(): Promise<string> {

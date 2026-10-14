@@ -666,7 +666,16 @@ app.get("/api/duels/next", async (req, res) => {
   try {
     const requestedMode = String(req.query.mode ?? "SIMILARITY").toUpperCase();
 
-    const allowedModes: DuelMode[] = ["SIMILARITY", "CONTRAST", "DISCOVERY"];
+    const allowedModes: DuelMode[] = [
+      "SIMILARITY",
+      "CONTRAST",
+      "DISCOVERY",
+      "CLASSIC_VS_MODERN",
+      "UNDERDOG_VS_POPULAR",
+      "SAME_FRANCHISE",
+      "CRITICS_VS_COMMUNITY",
+      "RANDOM_CHAOS",
+    ];
 
     if (!allowedModes.includes(requestedMode as DuelMode)) {
       return res.status(400).json({

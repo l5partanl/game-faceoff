@@ -3,7 +3,16 @@ import Duel from "./components/Duel";
 import { fetchNextDuel } from "./services/api";
 import type { DuelData, DuelMode } from "./services/api";
 
-const modes: DuelMode[] = ["SIMILARITY", "CONTRAST", "DISCOVERY"];
+const modes: DuelMode[] = [
+  "SIMILARITY",
+  "CONTRAST",
+  "DISCOVERY",
+  "CLASSIC_VS_MODERN",
+  "UNDERDOG_VS_POPULAR",
+  "SAME_FRANCHISE",
+  "CRITICS_VS_COMMUNITY",
+  "RANDOM_CHAOS",
+];
 
 function App() {
   const [duel, setDuel] = useState<DuelData | null>(null);

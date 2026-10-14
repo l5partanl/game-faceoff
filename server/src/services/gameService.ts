@@ -109,5 +109,7 @@ export function normalizeIGDBGame(game: IGDBGame): Game {
       losses: 0,
       rating: 1500,
     },
+
+    summary: game.summary ?? "",
   };
 }

@@ -40,6 +40,40 @@ function getDuelContext(mode: DuelMode, reason: string): DuelContext {
         subtitle: reason,
         accent: "blue",
       };
+    case "CLASSIC_VS_MODERN":
+      return {
+        title: "PAST VS FUTURE",
+        subtitle: reason,
+        accent: "yellow",
+      };
+
+    case "UNDERDOG_VS_POPULAR":
+      return {
+        title: "UNDERDOG VS POPULAR",
+        subtitle: reason,
+        accent: "blue",
+      };
+
+    case "SAME_FRANCHISE":
+      return {
+        title: "FAMILY FEUD",
+        subtitle: reason,
+        accent: "red",
+      };
+
+    case "CRITICS_VS_COMMUNITY":
+      return {
+        title: "CRITICS VS PLAYERS",
+        subtitle: reason,
+        accent: "yellow",
+      };
+
+    case "RANDOM_CHAOS":
+      return {
+        title: "NO RULES",
+        subtitle: reason,
+        accent: "red",
+      };
   }
 }
 
@@ -49,7 +83,7 @@ function Duel({ duel, mode, reason, onNextDuel }: DuelProps) {
   const [voteResult, setVoteResult] = useState<VoteGameResult | null>(null);
   const [isSavingVote, setIsSavingVote] = useState(false);
   const [voteError, setVoteError] = useState<string | null>(null);
-
+  const [infoGame, setInfoGame] = useState<Game | null>(null);
   const [gameA, gameB] = duel;
   const context = getDuelContext(mode, reason);
 
@@ -183,6 +217,41 @@ function Duel({ duel, mode, reason, onNextDuel }: DuelProps) {
         })}
       </div>
 
+      {phase === "highlighting" && (
+        <>
+          <button
+            type="button"
+            className="duel-info-button duel-info-a"
+            onClick={() => setInfoGame(gameA)}
+            disabled={isSavingVote}
+            aria-label={`Info about ${gameA.name}`}
+          >
+            i
+          </button>
+
+          <button
+            type="button"
+            className="duel-info-button duel-info-b"
+            onClick={() => setInfoGame(gameB)}
+            disabled={isSavingVote}
+            aria-label={`Info about ${gameB.name}`}
+          >
+            i
+          </button>
+
+          <button
+            type="button"
+            className="duel-skip-button"
+            onClick={onNextDuel}
+            disabled={isSavingVote}
+            aria-label="Skip duel"
+            title="Skip duel"
+          >
+            »
+          </button>
+        </>
+      )}
+
       {phase === "presenting" && (
         <div className="duel-presentation">
           <div className="duel-presentation-tag">
@@ -281,6 +350,64 @@ function Duel({ duel, mode, reason, onNextDuel }: DuelProps) {
               <strong>→</strong>
             </button>
           </div>
+        </div>
+      )}
+
+      {infoGame && (
+        <div
+          className="duel-info-overlay"
+          role="presentation"
+          onClick={() => setInfoGame(null)}
+        >
+          <section
+            className="duel-info-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="duel-info-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="duel-info-close"
+              onClick={() => setInfoGame(null)}
+              aria-label="Close game information"
+            >
+              ×
+            </button>
+
+            <div className="duel-info-image">
+              <img
+                src={infoGame.cover || infoGame.image}
+                alt={`Cover of ${infoGame.name}`}
+              />
+            </div>
+
+            <div className="duel-info-content">
+              <span className="duel-info-eyebrow">GAME FILE / IGDB</span>
+
+              <h2 id="duel-info-title">{infoGame.name}</h2>
+
+              <p className="duel-info-meta">
+                {infoGame.year ?? "Release year unknown"}
+                {infoGame.genres.length > 0
+                  ? ` · ${infoGame.genres.join(", ")}`
+                  : ""}
+              </p>
+
+              <p className="duel-info-summary">
+                {infoGame.summary?.trim() ||
+                  "No synopsis is available for this game yet."}
+              </p>
+
+              <button
+                type="button"
+                className="duel-info-back"
+                onClick={() => setInfoGame(null)}
+              >
+                BACK TO DUEL
+              </button>
+            </div>
+          </section>
         </div>
       )}
     </section>

@@ -1,6 +1,14 @@
 import type { Game } from "../types/game";
 
-export type DuelMode = "SIMILARITY" | "CONTRAST" | "DISCOVERY";
+export type DuelMode =
+  | "SIMILARITY"
+  | "CONTRAST"
+  | "DISCOVERY"
+  | "CLASSIC_VS_MODERN"
+  | "UNDERDOG_VS_POPULAR"
+  | "SAME_FRANCHISE"
+  | "CRITICS_VS_COMMUNITY"
+  | "RANDOM_CHAOS";
 
 export interface DuelData {
   mode: DuelMode;
@@ -26,6 +34,7 @@ interface BackendGame {
     votes?: number;
     rating?: number;
   };
+  summary?: string;
 }
 
 interface BackendDuelResponse {
@@ -60,6 +69,7 @@ function normalizeGame(game: BackendGame): Game {
     platforms: game.dna?.platforms ?? [],
     communityVotes: game.community?.votes ?? 0,
     communityRating: game.community?.rating ?? 1500,
+    summary: game.summary ?? "",
   };
 }
 

@@ -57,4 +57,6 @@ export interface Game {
   external: GameExternal;
 
   community: GameCommunity;
+
+  summary?: string;
 }
