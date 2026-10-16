@@ -53,10 +53,7 @@ export async function saveGameIfNotExists(
   };
 }
 
-
-export async function refreshGameMetadata(
-  game: Game
-): Promise<Game | null> {
+export async function refreshGameMetadata(game: Game): Promise<Game | null> {
   const games = await getGameCollection();
 
   await games.updateOne(
@@ -65,12 +62,13 @@ export async function refreshGameMetadata(
       $set: {
         name: game.name,
         slug: game.slug,
+        summary: game.summary,
         time: game.time,
         dna: game.dna,
         media: game.media,
         external: game.external,
       },
-    }
+    },
   );
 
   return games.findOne({ igdbId: game.igdbId });

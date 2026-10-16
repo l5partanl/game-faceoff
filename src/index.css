@@ -361,7 +361,7 @@ button {
   margin: 0;
 
   font-family: "Anton", Impact, sans-serif;
-  font-size: clamp(48px, 6vw, 100px);
+  font-size: clamp(36px, 3.6vw, 64px);
   line-height: 0.88;
   text-transform: uppercase;
   letter-spacing: -0.025em;
@@ -1271,17 +1271,23 @@ button {
   }
 
   .duel-side-image img {
-    transform: scale(1.08);
+    transform: scale(1);
   }
 
   .duel-side-a .duel-side-image img {
     object-fit: cover;
+    scale: 60%;
+    overflow: visible;
+    margin-top: -20vh;
     object-position: center 5%;
     transform: translateY(-8%) scale(1.08);
   }
 
   .duel-side-b .duel-side-image img {
     object-fit: cover;
+    scale: 60%;
+    overflow: visible;
+    margin-top: 20vh;
     object-position: center 95%;
     transform: translateY(8%) scale(1.08);
   }
@@ -1330,14 +1336,14 @@ button {
    ----------------------------------------- */
 
   .duel-side-top {
-    top: 3%;
+    top: 2%;
     left: 4%;
     gap: 6px;
   }
 
   .duel-side-b .duel-side-top {
-    right: 4%;
-    bottom: 100%;
+    right: 2%;
+    bottom: 100vh;
     justify-content: flex-end;
   }
 
@@ -1357,17 +1363,15 @@ button {
   /* GAME TITLE */
 
   .duel-side-bottom {
-    left: 4%;
+    left: 2%;
     top: 30%;
     bottom: auto;
-    width: 43%;
-    max-width: 43%;
   }
 
   .duel-side-b .duel-side-bottom {
     top: 82%;
     left: auto;
-    right: 4%;
+    right: 2%;
     bottom: auto;
     width: auto;
     max-width: none;
@@ -1388,7 +1392,6 @@ button {
   /* TITLE */
 
   .duel-side-bottom h2 {
-    font-size: clamp(32px, 10vw, 52px);
     line-height: 0.88;
     letter-spacing: -0.035em;
     white-space: nowrap;
@@ -1670,7 +1673,7 @@ button {
 
 @media (max-width: 400px) {
   .duel-side-bottom h2 {
-    font-size: 34px;
+    font-size: 26px;
   }
 
   .duel-side-details {
