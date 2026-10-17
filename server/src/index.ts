@@ -271,6 +271,7 @@ app.get("/api/games/stats", async (_req, res) => {
       withScreenshots,
       withIGDBRatingCount,
       withoutCommunityVotes,
+      gameRecords,
     ] = await Promise.all([
       games.countDocuments(),
 
@@ -334,10 +335,54 @@ app.get("/api/games/stats", async (_req, res) => {
       games.countDocuments({
         "community.votes": 0,
       }),
+
+      // The dashboard pages need individual game records, not only catalog aggregates.
+      games
+        .find(
+          {},
+          {
+            projection: {
+              _id: 0,
+              igdbId: 1,
+              name: 1,
+              media: 1,
+              time: 1,
+              dna: 1,
+              community: 1,
+              external: 1,
+              summary: 1,
+            },
+          },
+        )
+        .toArray(),
     ]);
 
     return res.json({
       status: "ok",
+
+      // Consumed by Leaderboards, Votes and Insights.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      games: gameRecords.map((game: any) => ({
+        id: game.igdbId,
+        igdbId: game.igdbId,
+        name: game.name,
+        summary: game.summary ?? null,
+        cover: game.media?.cover ?? null,
+        year:
+          game.time?.year ??
+          (game.time?.releaseDate
+            ? new Date(game.time.releaseDate).getFullYear()
+            : null),
+        genres: game.dna?.genres ?? [],
+        platforms: game.dna?.platforms ?? [],
+        community: {
+          votes: game.community?.votes ?? 0,
+          wins: game.community?.wins ?? 0,
+          losses: game.community?.losses ?? 0,
+          rating: game.community?.rating ?? null,
+        },
+        igdbRating: game.external?.rating ?? null,
+      })),
 
       catalog: {
         total,

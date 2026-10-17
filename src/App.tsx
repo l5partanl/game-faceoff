@@ -10,6 +10,8 @@ import AboutPage from "./pages/AboutPage";
 import { fetchNextDuel } from "./services/api";
 import type { DuelData, DuelMode } from "./services/api";
 import "./styles/game-faceoff.css";
+import GameInfoModal from "./components/GameInfoModal";
+import type { GameStat } from "./services/stats";
 
 const modes: DuelMode[] = [
   "SIMILARITY",
@@ -130,6 +132,18 @@ export default function App() {
     },
     [loading],
   );
+
+  const [selectedInfoGame, setSelectedInfoGame] = useState<GameStat | null>(
+    null,
+  );
+
+  const openGameInfo = useCallback((game: GameStat) => {
+    setSelectedInfoGame(game);
+  }, []);
+
+  const closeGameInfo = useCallback(() => {
+    setSelectedInfoGame(null);
+  }, []);
 
   useEffect(() => {
     const onPopState = () => {
@@ -257,11 +271,23 @@ export default function App() {
       break;
 
     case "leaderboards":
-      screen = <LeaderboardsPage apiBase={apiBase} onNavigate={navigate} />;
+      screen = (
+        <LeaderboardsPage
+          apiBase={apiBase}
+          onNavigate={navigate}
+          onSelectGame={openGameInfo}
+        />
+      );
       break;
 
     case "votes":
-      screen = <VotesPage apiBase={apiBase} onNavigate={navigate} />;
+      screen = (
+        <VotesPage
+          apiBase={apiBase}
+          onNavigate={navigate}
+          onSelectGame={openGameInfo}
+        />
+      );
       break;
 
     case "insights":
@@ -343,6 +369,7 @@ export default function App() {
         onClose={() => setHubOpen(false)}
         onNavigate={(next) => navigate(next)}
       />
+      <GameInfoModal game={selectedInfoGame} onClose={closeGameInfo} />
     </div>
   );
 }

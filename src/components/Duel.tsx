@@ -3,6 +3,7 @@ import ThreeText from "./ThreeText";
 import ImpactSlash from "./ImpactSlash";
 import type { Game } from "../types/game";
 import type { DuelMode } from "../services/api";
+import GameInfoModal from "./GameInfoModal";
 import { recordVote, type VoteGameResult } from "../services/api";
 
 type DuelPhase = "presenting" | "highlighting" | "impact" | "aftermath";
@@ -353,63 +354,7 @@ function Duel({ duel, mode, reason, onNextDuel }: DuelProps) {
         </div>
       )}
 
-      {infoGame && (
-        <div
-          className="duel-info-overlay"
-          role="presentation"
-          onClick={() => setInfoGame(null)}
-        >
-          <section
-            className="duel-info-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="duel-info-title"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <button
-              type="button"
-              className="duel-info-close"
-              onClick={() => setInfoGame(null)}
-              aria-label="Close game information"
-            >
-              ×
-            </button>
-
-            <div className="duel-info-image">
-              <img
-                src={infoGame.cover || infoGame.image}
-                alt={`Cover of ${infoGame.name}`}
-              />
-            </div>
-
-            <div className="duel-info-content">
-              <span className="duel-info-eyebrow">GAME FILE / IGDB</span>
-
-              <h2 id="duel-info-title">{infoGame.name}</h2>
-
-              <p className="duel-info-meta">
-                {infoGame.year ?? "Release year unknown"}
-                {infoGame.genres.length > 0
-                  ? ` · ${infoGame.genres.join(", ")}`
-                  : ""}
-              </p>
-
-              <p className="duel-info-summary">
-                {infoGame.summary?.trim() ||
-                  "No synopsis is available for this game yet."}
-              </p>
-
-              <button
-                type="button"
-                className="duel-info-back"
-                onClick={() => setInfoGame(null)}
-              >
-                BACK TO DUEL
-              </button>
-            </div>
-          </section>
-        </div>
-      )}
+      <GameInfoModal game={infoGame} onClose={() => setInfoGame(null)} />
     </section>
   );
 }
