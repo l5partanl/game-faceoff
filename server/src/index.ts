@@ -19,8 +19,42 @@ import { startCatalogSync } from "./services/catalogSync.js";
 
 import { generateDuel, type DuelMode } from "./services/duelGenerator.js";
 
+import { timingSafeEqual } from "node:crypto";
+import type { Request, Response, NextFunction } from "express";
+
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
+
+const ADMIN_API_KEY = process.env.ADMIN_API_KEY;
+
+function requireAdmin(req: Request, res: Response, next: NextFunction): void {
+  if (!ADMIN_API_KEY) {
+    res.status(503).json({
+      error: "Administrative endpoints are disabled",
+    });
+    return;
+  }
+
+  const providedKey = req.header("x-admin-key");
+
+  if (!providedKey) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  const expectedBuffer = Buffer.from(ADMIN_API_KEY);
+  const providedBuffer = Buffer.from(providedKey);
+
+  if (
+    expectedBuffer.length !== providedBuffer.length ||
+    !timingSafeEqual(expectedBuffer, providedBuffer)
+  ) {
+    res.status(403).json({ error: "Forbidden" });
+    return;
+  }
+
+  next();
+}
 
 app.use(cors());
 app.use(express.json());
@@ -52,7 +86,7 @@ app.get("/api/igdb/test", async (_req, res) => {
   }
 });
 
-app.post("/api/games/import", async (req, res) => {
+app.post("/api/games/import", requireAdmin, async (req, res) => {
   const igdbId = Number(req.body?.igdbId);
 
   if (!Number.isInteger(igdbId) || igdbId <= 0) {
@@ -104,7 +138,7 @@ app.post("/api/games/import", async (req, res) => {
   }
 });
 
-app.post("/api/games/discover", async (req, res) => {
+app.post("/api/games/discover", requireAdmin, async (req, res) => {
   const limit = Number(req.body?.limit ?? 50);
   const offset = Number(req.body?.offset ?? 0);
   const maxPages = Number(req.body?.maxPages ?? 1);
@@ -415,7 +449,7 @@ app.get("/api/games/stats", async (_req, res) => {
   }
 });
 
-app.post("/api/games/refresh", async (req, res) => {
+app.post("/api/games/refresh", requireAdmin, async (req, res) => {
   try {
     const igdbId = Number(req.body?.igdbId);
 
@@ -471,7 +505,7 @@ app.post("/api/games/refresh", async (req, res) => {
   }
 });
 
-app.post("/api/games/refresh-all", async (_req, res) => {
+app.post("/api/games/refresh-all", requireAdmin, async (_req, res) => {
   try {
     const database = await connectDatabase();
     const games = database.collection("games");
