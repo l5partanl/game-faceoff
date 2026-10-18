@@ -8,6 +8,8 @@ import { recordVote, type VoteGameResult } from "../services/api";
 
 type DuelPhase = "presenting" | "highlighting" | "impact" | "aftermath";
 
+const DUEL_TUTORIAL_SESSION_KEY = "game-faceoff-duel-tutorial-seen";
+
 interface DuelProps {
   duel: [Game, Game];
   mode: DuelMode;
@@ -85,6 +87,8 @@ function Duel({ duel, mode, reason, onNextDuel }: DuelProps) {
   const [isSavingVote, setIsSavingVote] = useState(false);
   const [voteError, setVoteError] = useState<string | null>(null);
   const [infoGame, setInfoGame] = useState<Game | null>(null);
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [tutorialChecked, setTutorialChecked] = useState(false);
   const [gameA, gameB] = duel;
   const context = getDuelContext(mode, reason);
 
@@ -107,6 +111,33 @@ function Duel({ duel, mode, reason, onNextDuel }: DuelProps) {
 
     return () => clearTimeout(timer);
   }, [phase]);
+
+  // Show the onboarding overlay once per browser tab session, after both games are visible.
+  useEffect(() => {
+    if (phase !== "highlighting" || tutorialChecked) return;
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTutorialChecked(true);
+
+    try {
+      if (window.sessionStorage.getItem(DUEL_TUTORIAL_SESSION_KEY) !== "seen") {
+        setShowTutorial(true);
+      }
+    } catch {
+      // Keep the tutorial usable if sessionStorage is unavailable.
+      setShowTutorial(true);
+    }
+  }, [phase, tutorialChecked]);
+
+  const dismissTutorial = () => {
+    setShowTutorial(false);
+
+    try {
+      window.sessionStorage.setItem(DUEL_TUTORIAL_SESSION_KEY, "seen");
+    } catch {
+      // Dismissing the overlay should still work if sessionStorage is unavailable.
+    }
+  };
 
   const handleGameSelect = (game: Game) => {
     if (phase !== "highlighting" || isSavingVote || voteResult) return;
@@ -251,6 +282,97 @@ function Duel({ duel, mode, reason, onNextDuel }: DuelProps) {
             »
           </button>
         </>
+      )}
+
+      {showTutorial && phase === "highlighting" && (
+        <div
+          className="duel-tutorial-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="How to play Game Face-Off"
+          tabIndex={0}
+          onPointerDown={(event) => {
+            // Capture the first touch so it dismisses the tutorial only,
+            // never the game button underneath it.
+            event.preventDefault();
+            event.stopPropagation();
+            dismissTutorial();
+          }}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            dismissTutorial();
+          }}
+          onKeyDown={(event) => {
+            if (
+              event.key === "Escape" ||
+              event.key === "Enter" ||
+              event.key === " "
+            ) {
+              event.preventDefault();
+              event.stopPropagation();
+              dismissTutorial();
+            }
+          }}
+        >
+          <div className="duel-tutorial-skip" aria-hidden="true">
+            <span className="duel-tutorial-arrow">↑</span>
+            <span>
+              <strong>SKIP</strong> — jump to another duel
+            </span>
+          </div>
+
+          <div
+            className="duel-tutorial-info duel-tutorial-info-a"
+            aria-hidden="true"
+          >
+            <span className="duel-tutorial-arrow">←</span>
+            <span>
+              <strong>INFO</strong>
+              <br />
+              Game details
+            </span>
+          </div>
+          <div
+            className="duel-tutorial-info duel-tutorial-info-b"
+            aria-hidden="true"
+          >
+            <span>
+              <strong>INFO</strong>
+              <br />
+              Game details
+            </span>
+            <span className="duel-tutorial-arrow">→</span>
+          </div>
+
+          <div className="duel-tutorial-card">
+            <span className="duel-tutorial-kicker">
+              GAME FACE-OFF / QUICK GUIDE
+            </span>
+            <h2>YOUR PICK. YOUR RULES.</h2>
+            <p>
+              <strong>1.</strong> Tap a game to select it.
+            </p>
+            <p>
+              <strong>2.</strong> Tap it again to confirm your vote.
+            </p>
+            <p>
+              <strong>3.</strong> Use <b>INFO</b> for details or <b>SKIP</b> for
+              another duel.
+            </p>
+            <span className="duel-tutorial-dismiss">
+              TOUCH ANYWHERE TO START
+            </span>
+          </div>
+
+          <div className="duel-tutorial-choice" aria-hidden="true">
+            <span>
+              <strong>CHOOSE A SIDE</strong>
+              <br />
+              Tap again to vote
+            </span>
+          </div>
+        </div>
       )}
 
       {phase === "presenting" && (

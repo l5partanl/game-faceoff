@@ -162,6 +162,21 @@ export default function App() {
     }
   }, [section, duel, loading, error, loadDuel]);
 
+  useEffect(() => {
+    if (section !== "duels") return;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    };
+  }, [section]);
+
   const openDuel = useCallback(() => {
     navigate("duels");
     if (!duel && !loading) {
@@ -359,7 +374,7 @@ export default function App() {
             target="_blank"
             rel="noreferrer"
           >
-            GIAN CAORLIN <span aria-hidden="true">↗</span>
+            <span aria-hidden="true">↗</span> GIAN CAORLIN - 2026
           </a>
         </footer>
       )}

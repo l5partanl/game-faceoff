@@ -573,17 +573,19 @@ button:disabled {
   font-weight: 900;
   letter-spacing: 0.26em;
   transform: translateY(-22px);
+    text-shadow: 2px 2px 0 var(--gf-black);
 }
 
 /* Hint beneath the hero */
 
 .gf-home-hint {
-  margin-top: 10px;
+  margin-top: 20px;
   color: #777;
   font-family: var(--gf-font-body);
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.18em;
+  transform: translateY(30px);
 }
 
 /* =========================================================
@@ -1393,7 +1395,7 @@ button:disabled {
   right: 22px;
   width: 45px;
   height: 45px;
-  border: 1px solid rgba(255, 223, 0, 0.7);
+  border: 3px solid var(--gf-yellow);
   border-radius: 50%;
   background: rgba(7, 7, 12, 0.82);
   color: var(--gf-yellow);
@@ -1406,10 +1408,9 @@ button:disabled {
 
 .gf-menu-orb i {
   position: absolute;
-  inset: -6px;
-  border: 1px solid rgba(255, 223, 0, 0.28);
+  inset: -10px;
+  border: 1px solid var(--gf-yellow);
   border-radius: 50%;
-  animation: gf-orbit 10s linear infinite;
 }
 
 .gf-toast {
@@ -1559,6 +1560,7 @@ button:disabled {
 /* Mobile */
 
 @media (max-width: 600px) {
+  
   /* Header */
 
   .gf-topbar {

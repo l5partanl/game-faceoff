@@ -8,7 +8,7 @@ type AboutPageProps = {
 export default function AboutPage({ onNavigate }: AboutPageProps) {
   return (
     <article className="gf-about">
-      <header className="gf-about-hero">
+      <header className="gf-page-hero">
         <span className="gf-eyebrow">BEHIND THE PROJECT / 001</span>
 
         <h1>
